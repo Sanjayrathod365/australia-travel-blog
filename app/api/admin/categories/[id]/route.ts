@@ -47,15 +47,18 @@ export async function PUT(
 
     const resolvedParams = await params;
     const body = await request.json();
-    const { name, description } = body;
+    const { name, slug, description } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     const result = await query(
-      'UPDATE categories SET name = $1, description = $2 WHERE id = $3 RETURNING *',
-      [name, description, resolvedParams.id]
+      `UPDATE categories 
+       SET name = $1, slug = $2, description = $3
+       WHERE id = $4
+       RETURNING *`,
+      [name, slug, description, resolvedParams.id]
     );
 
     if (result.rows.length === 0) {
@@ -85,13 +88,13 @@ export async function DELETE(
 
     const resolvedParams = await params;
 
-    // Delete category relationships first
+    // First, update any posts that reference this category to have null category_id
     await query(
-      'DELETE FROM post_categories WHERE category_id = $1',
+      'UPDATE posts SET category_id = NULL WHERE category_id = $1',
       [resolvedParams.id]
     );
 
-    // Delete the category
+    // Then delete the category
     const result = await query(
       'DELETE FROM categories WHERE id = $1 RETURNING *',
       [resolvedParams.id]

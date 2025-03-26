@@ -14,14 +14,15 @@ import { toast } from "react-toastify";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
+  type?: string;
 }
 
 export function DataTableRowActions<TData>({
   row,
+  type = 'post'
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const data = row.original as any;
-  const type = data.type || 'post';
 
   const handleDelete = async () => {
     try {
@@ -42,6 +43,10 @@ export function DataTableRowActions<TData>({
   };
 
   const getEditPath = () => {
+    // Handle special cases for different types
+    if (type === 'user') {
+      return `/admin/users/edit/${data.id}`;
+    }
     // Handle plural forms correctly
     const path = type === 'category' ? 'categories' : `${type}s`;
     return `/admin/${path}/${data.id}/edit`;

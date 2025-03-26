@@ -1,132 +1,105 @@
 import { query } from './db';
 
-interface Post {
+export interface Post {
   id: number;
   title: string;
   slug: string;
   content: string;
   excerpt: string | null;
-  published_at: string;
+  featured_image: string | null;
+  author_id: number;
+  category_id: number | null;
+  status: string;
+  published_at: string | null;
   created_at: string;
   updated_at: string;
-  categories: string[];
-  tags: string[];
+  author_name: string;
+  category_name: string | null;
+  category_slug: string | null;
+  tag_count: number;
 }
 
-export async function getPost(slug: string): Promise<Post | null> {
-  try {
-    const result = await query(
-      `SELECT 
-        p.*,
-        array_agg(DISTINCT c.name) as categories,
-        array_agg(DISTINCT t.name) as tags
-      FROM posts p
-      LEFT JOIN post_categories pc ON p.id = pc.post_id
-      LEFT JOIN categories c ON pc.category_id = c.id
-      LEFT JOIN post_tags pt ON p.id = pt.post_id
-      LEFT JOIN tags t ON pt.tag_id = t.id
-      WHERE p.slug = $1
-      GROUP BY p.id`,
-      [slug]
-    );
+export async function getPosts(page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
+  const result = await query(`
+    SELECT 
+      p.*,
+      u.name as author_name,
+      c.name as category_name,
+      c.slug as category_slug,
+      COUNT(DISTINCT pt.tag_id) as tag_count
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN post_tags pt ON p.id = pt.post_id
+    GROUP BY p.id, u.name, c.name, c.slug
+    ORDER BY p.created_at DESC
+    LIMIT $1 OFFSET $2
+  `, [limit, offset]);
 
-    if (result.rows.length === 0) {
-      return null;
-    }
-
-    const post = result.rows[0];
-    return {
-      ...post,
-      categories: post.categories.filter(Boolean),
-      tags: post.tags.filter(Boolean),
-    };
-  } catch (error) {
-    console.error('Error fetching post:', error);
-    throw error;
-  }
+  return result.rows;
 }
 
-export async function getAllPosts(): Promise<Post[]> {
-  try {
-    const result = await query(
-      `SELECT 
-        p.*,
-        array_agg(DISTINCT c.name) as categories,
-        array_agg(DISTINCT t.name) as tags
-      FROM posts p
-      LEFT JOIN post_categories pc ON p.id = pc.post_id
-      LEFT JOIN categories c ON pc.category_id = c.id
-      LEFT JOIN post_tags pt ON p.id = pt.post_id
-      LEFT JOIN tags t ON pt.tag_id = t.id
-      GROUP BY p.id
-      ORDER BY p.published_at DESC`
-    );
+export async function getPostBySlug(slug: string) {
+  const result = await query(`
+    SELECT 
+      p.*,
+      u.name as author_name,
+      c.name as category_name,
+      c.slug as category_slug,
+      COUNT(DISTINCT pt.tag_id) as tag_count
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN post_tags pt ON p.id = pt.post_id
+    WHERE p.slug = $1
+    GROUP BY p.id, u.name, c.name, c.slug
+  `, [slug]);
 
-    return result.rows.map((post: Post) => ({
-      ...post,
-      categories: post.categories.filter(Boolean),
-      tags: post.tags.filter(Boolean),
-    }));
-  } catch (error) {
-    console.error('Error fetching posts:', error);
-    throw error;
-  }
+  return result.rows[0];
 }
 
-export async function getPostsByCategory(categorySlug: string): Promise<Post[]> {
-  try {
-    const result = await query(
-      `SELECT 
-        p.*,
-        array_agg(DISTINCT c.name) as categories,
-        array_agg(DISTINCT t.name) as tags
-      FROM posts p
-      LEFT JOIN post_categories pc ON p.id = pc.post_id
-      LEFT JOIN categories c ON pc.category_id = c.id
-      LEFT JOIN post_tags pt ON p.id = pt.post_id
-      LEFT JOIN tags t ON pt.tag_id = t.id
-      WHERE c.slug = $1
-      GROUP BY p.id
-      ORDER BY p.published_at DESC`,
-      [categorySlug]
-    );
+export async function getPostsByCategory(categorySlug: string, page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
+  const result = await query(`
+    SELECT 
+      p.*,
+      u.name as author_name,
+      c.name as category_name,
+      c.slug as category_slug,
+      COUNT(DISTINCT pt.tag_id) as tag_count
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN post_tags pt ON p.id = pt.post_id
+    WHERE c.slug = $1
+    GROUP BY p.id, u.name, c.name, c.slug
+    ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $3
+  `, [categorySlug, limit, offset]);
 
-    return result.rows.map((post: Post) => ({
-      ...post,
-      categories: post.categories.filter(Boolean),
-      tags: post.tags.filter(Boolean),
-    }));
-  } catch (error) {
-    console.error('Error fetching posts by category:', error);
-    throw error;
-  }
+  return result.rows;
 }
 
-export async function getPostsByTag(tagSlug: string): Promise<Post[]> {
-  try {
-    const result = await query(
-      `SELECT 
-        p.*,
-        array_agg(DISTINCT c.name) as categories,
-        array_agg(DISTINCT t.name) as tags
-      FROM posts p
-      LEFT JOIN post_categories pc ON p.id = pc.post_id
-      LEFT JOIN categories c ON pc.category_id = c.id
-      LEFT JOIN post_tags pt ON p.id = pt.post_id
-      LEFT JOIN tags t ON pt.tag_id = t.id
-      WHERE t.slug = $1
-      GROUP BY p.id
-      ORDER BY p.published_at DESC`,
-      [tagSlug]
-    );
+export async function getPostsByTag(tagSlug: string, page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
+  const result = await query(`
+    SELECT 
+      p.*,
+      u.name as author_name,
+      c.name as category_name,
+      c.slug as category_slug,
+      COUNT(DISTINCT pt.tag_id) as tag_count
+    FROM posts p
+    LEFT JOIN users u ON p.author_id = u.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN post_tags pt ON p.id = pt.post_id
+    LEFT JOIN tags t ON pt.tag_id = t.id
+    WHERE t.slug = $1
+    GROUP BY p.id, u.name, c.name, c.slug
+    ORDER BY p.created_at DESC
+    LIMIT $2 OFFSET $3
+  `, [tagSlug, limit, offset]);
 
-    return result.rows.map((post: Post) => ({
-      ...post,
-      categories: post.categories.filter(Boolean),
-      tags: post.tags.filter(Boolean),
-    }));
-  } catch (error) {
-    console.error('Error fetching posts by tag:', error);
-    throw error;
-  }
+  return result.rows;
 } 

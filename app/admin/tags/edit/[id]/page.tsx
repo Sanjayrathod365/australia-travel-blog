@@ -1,150 +1,112 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Tag } from '../../columns';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { use } from "react";
 
-export default function EditTagPage({ params }: { params: { id: string } }) {
-  const [tag, setTag] = useState<Tag | null>(null);
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+interface Tag {
+  id: number;
+  name: string;
+  slug: string;
+}
+
+export default function EditTagPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter();
+  const [tag, setTag] = useState<Tag | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     async function fetchTag() {
-      if (!params.id) {
-        setError('Invalid tag ID');
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
       try {
-        const response = await fetch(`/api/admin/tags/${params.id}`);
+        const response = await fetch(`/api/admin/tags/${resolvedParams.id}`);
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to fetch tag');
+          throw new Error("Failed to fetch tag");
         }
         const data = await response.json();
         setTag(data);
-        setName(data.name);
-      } catch (err) {
-        setError((err as Error).message);
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching tag:", error);
+        toast.error("Failed to load tag");
       }
     }
-    fetchTag();
-  }, [params.id]);
+
+    if (resolvedParams.id) {
+      fetchTag();
+    }
+  }, [resolvedParams.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!params.id) {
-      setError('Invalid tag ID');
-      return;
-    }
-
-    setError('');
-    setIsSaving(true);
+    if (!tag) return;
 
     try {
-      const response = await fetch(`/api/admin/tags/${params.id}`, {
-        method: 'PUT',
+      setLoading(true);
+      const response = await fetch(`/api/admin/tags/${resolvedParams.id}`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name: tag.name,
+          slug: tag.slug,
+        }),
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update tag');
+        throw new Error("Failed to update tag");
       }
 
-      router.push('/admin/tags');
+      toast.success("Tag updated successfully");
+      router.push("/admin/tags");
       router.refresh();
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (error) {
+      console.error("Error updating tag:", error);
+      toast.error("Failed to update tag");
     } finally {
-      setIsSaving(false);
+      setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="container mx-auto py-10">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-12 bg-gray-200 rounded"></div>
-            <div className="h-10 bg-gray-200 rounded w-1/3"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto py-10">
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-          <div className="mt-4">
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Go Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  if (!tag) {
+    return <div>Loading...</div>;
   }
 
   return (
     <div className="container mx-auto py-10">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-gray-900">Edit Tag</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Tag Name
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 bg-white"
-              required
-              placeholder="Enter tag name"
-            />
-          </div>
-
-          <div className="flex justify-end space-x-4">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {isSaving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Edit Tag</h1>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
+        <div className="space-y-2">
+          <Label htmlFor="name">Name</Label>
+          <Input
+            id="name"
+            value={tag.name}
+            onChange={(e) => setTag({ ...tag, name: e.target.value })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="slug">Slug</Label>
+          <Input
+            id="slug"
+            value={tag.slug}
+            onChange={(e) => setTag({ ...tag, slug: e.target.value })}
+            required
+          />
+        </div>
+
+        <Button type="submit" disabled={loading}>
+          {loading ? "Saving..." : "Save Changes"}
+        </Button>
+      </form>
     </div>
   );
 } 

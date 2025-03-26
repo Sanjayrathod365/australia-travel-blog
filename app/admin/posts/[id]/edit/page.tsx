@@ -1,208 +1,389 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
-import { useSession } from 'next-auth/react';
-import dynamic from 'next/dynamic';
-import { use } from 'react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { MessageSquare, MessageSquareOff } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { toast } from "sonner";
+import { use } from "react";
 
-const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
+interface Category {
+  id: number;
+  name: string;
+}
 
 interface Tag {
   id: number;
   name: string;
 }
 
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  excerpt: string;
-  tags: string[];
-}
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  slug: z.string().min(1, "Slug is required"),
+  content: z.string().min(1, "Content is required"),
+  excerpt: z.string().optional(),
+  status: z.enum(["draft", "published"]),
+  published_at: z.string().optional(),
+  category_id: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  comments_enabled: z.boolean().default(true),
+});
 
-export default function EditPostPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [excerpt, setExcerpt] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { status } = useSession();
+export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      slug: "",
+      content: "",
+      excerpt: "",
+      status: "draft",
+      published_at: "",
+      category_id: "",
+      tags: [],
+      comments_enabled: true,
+    },
+  });
 
   useEffect(() => {
-    const fetchPost = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch post');
-        }
-        const post: Post = await response.json();
-        setTitle(post.title);
-        setContent(post.content);
-        setExcerpt(post.excerpt);
-        setSelectedTags(post.tags || []);
+        // Fetch post data
+        const postResponse = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`);
+        if (!postResponse.ok) throw new Error("Failed to fetch post");
+        const postData = await postResponse.json();
+        
+        // Format the data for the form
+        const formattedData = {
+          title: postData.title,
+          slug: postData.slug,
+          content: postData.content,
+          excerpt: postData.excerpt || "",
+          status: postData.status || "draft",
+          published_at: postData.published_at ? new Date(postData.published_at).toISOString().split('T')[0] : "",
+          category_id: postData.category_id?.toString() || "",
+          tags: Array.isArray(postData.tags) 
+            ? postData.tags
+                .filter((tag: any) => tag && tag.id) // Filter out null/undefined tags
+                .map((tag: any) => tag.id.toString())
+            : [],
+          comments_enabled: postData.comments_enabled ?? true,
+        };
+
+        form.reset(formattedData);
+        setCommentsEnabled(postData.comments_enabled ?? true);
+
+        // Fetch categories
+        const categoriesResponse = await fetch("/api/admin/categories");
+        if (!categoriesResponse.ok) throw new Error("Failed to fetch categories");
+        const categoriesData = await categoriesResponse.json();
+        setCategories(categoriesData);
+
+        // Fetch available tags
+        const tagsResponse = await fetch("/api/admin/tags");
+        if (!tagsResponse.ok) throw new Error("Failed to fetch tags");
+        const tagsData = await tagsResponse.json();
+        setAvailableTags(tagsData);
       } catch (error) {
-        console.error('Error fetching post:', error);
-        toast.error('Failed to fetch post');
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load post data");
       }
     };
 
-    const fetchTags = async () => {
-      try {
-        const response = await fetch('/api/admin/tags');
-        if (!response.ok) {
-          throw new Error('Failed to fetch tags');
-        }
-        const tags = await response.json();
-        setAvailableTags(tags);
-      } catch (error) {
-        console.error('Error fetching tags:', error);
-        toast.error('Failed to fetch tags');
-      }
-    };
+    fetchData();
+  }, [resolvedParams.id, form]);
 
-    fetchPost();
-    fetchTags();
-  }, [resolvedParams.id]);
-
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      setLoading(true);
+      
+      // Format the data for the API
+      const postData = {
+        ...values,
+        published_at: values.status === "published" ? values.published_at : null,
+        tags: values.tags?.map(tagId => parseInt(tagId)) || [],
+        comments_enabled: commentsEnabled,
+      };
+
       const response = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title,
-          content,
-          excerpt,
-          tags: selectedTags.filter(tag => tag && typeof tag === 'string' && tag.trim() !== ''), // Filter out null, undefined, and empty tags
-        }),
+        body: JSON.stringify(postData),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update post');
+        throw new Error("Failed to update post");
       }
 
-      toast.success('Post updated successfully');
-      router.push('/admin/posts');
+      toast.success("Post updated successfully");
+      router.push("/admin/posts");
+      router.refresh();
     } catch (error) {
-      console.error('Error updating post:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update post');
+      console.error("Error updating post:", error);
+      toast.error("Failed to update post");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  const handleTagToggle = (tagName: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagName)
-        ? prev.filter((t) => t !== tagName)
-        : [...prev, tagName]
-    );
-  };
+  }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Post</h1>
-        <button
-          onClick={() => router.push('/admin/posts')}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
-        >
-          Back to Posts
-        </button>
+    <div className="container mx-auto py-10">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Edit Post</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            required
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter post title" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
 
-        <div>
-          <label htmlFor="excerpt" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Excerpt
-          </label>
-          <textarea
-            id="excerpt"
-            value={excerpt}
-            onChange={(e) => setExcerpt(e.target.value)}
-            rows={3}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          {/* Comments Toggle Button */}
+          <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div>
+              <h3 className="font-medium text-gray-900">Comments</h3>
+              <p className="text-sm text-gray-500 mt-1">Allow visitors to leave comments on this post</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setCommentsEnabled(!commentsEnabled)}
+              className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                commentsEnabled
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              {commentsEnabled ? (
+                <>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Comments Enabled
+                </>
+              ) : (
+                <>
+                  <MessageSquareOff className="h-4 w-4 mr-2" />
+                  Comments Disabled
+                </>
+              )}
+            </button>
+          </div>
+
+          <FormField
+            control={form.control}
+            name="slug"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Slug</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter post slug" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Tags
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {availableTags.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => handleTagToggle(tag.name)}
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  selectedTags.includes(tag.name)
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-                }`}
-              >
-                {tag.name}
-              </button>
-            ))}
-          </div>
-        </div>
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Content</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter post content"
+                    className="min-h-[200px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div>
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Content
-          </label>
-          <div data-color-mode="light" className="mt-1">
-            <MDEditor value={content} onChange={(value) => setContent(value || '')} />
-          </div>
-        </div>
+          <FormField
+            control={form.control}
+            name="excerpt"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Excerpt</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter post excerpt"
+                    className="min-h-[100px]"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select post status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {form.watch("status") === "published" && (
+            <FormField
+              control={form.control}
+              name="published_at"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Publication Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          <FormField
+            control={form.control}
+            name="category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id.toString()}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="tags"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tags</FormLabel>
+                <Select
+                  onValueChange={(value) => {
+                    const currentTags = field.value || [];
+                    if (!currentTags.includes(value)) {
+                      field.onChange([...currentTags, value]);
+                    }
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select tags" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {availableTags.map((tag) => (
+                      <SelectItem key={tag.id} value={tag.id.toString()}>
+                        {tag.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {field.value?.map((tagId) => {
+                    const tag = availableTags.find((t) => t.id.toString() === tagId);
+                    return tag ? (
+                      <div
+                        key={tag.id}
+                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                      >
+                        {tag.name}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            field.onChange(field.value?.filter((id) => id !== tagId));
+                          }}
+                          className="text-blue-800 hover:text-blue-900"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" disabled={loading}>
+            {loading ? "Saving..." : "Save Changes"}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 } 

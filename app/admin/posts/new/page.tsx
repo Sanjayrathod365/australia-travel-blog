@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageSquare, MessageSquareOff } from 'lucide-react';
 
 interface PostFormData {
   title: string;
@@ -12,6 +13,7 @@ interface PostFormData {
   category_id: number | null;
   tags: number[];
   status: 'draft' | 'published';
+  comments_enabled: boolean;
 }
 
 export default function NewPost() {
@@ -26,7 +28,8 @@ export default function NewPost() {
     featured_image: '',
     category_id: null,
     tags: [],
-    status: 'draft'
+    status: 'draft',
+    comments_enabled: true
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -103,6 +106,13 @@ export default function NewPost() {
     }));
   };
 
+  const toggleComments = () => {
+    setFormData(prev => ({
+      ...prev,
+      comments_enabled: !prev.comments_enabled
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -140,6 +150,35 @@ export default function NewPost() {
             className="w-full px-4 py-2 bg-white text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500"
             placeholder="Enter post title"
           />
+        </div>
+
+        {/* Comments Toggle Button */}
+        <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div>
+            <h3 className="font-medium text-gray-900">Comments</h3>
+            <p className="text-sm text-gray-500 mt-1">Allow visitors to leave comments on this post</p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleComments}
+            className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              formData.comments_enabled
+                ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            {formData.comments_enabled ? (
+              <>
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Comments Enabled
+              </>
+            ) : (
+              <>
+                <MessageSquareOff className="h-4 w-4 mr-2" />
+                Comments Disabled
+              </>
+            )}
+          </button>
         </div>
 
         <div>

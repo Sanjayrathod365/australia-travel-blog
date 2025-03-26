@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, X, Image, Trash2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { CommentsToggle } from '@/components/CommentsToggle';
 
 // Import the markdown editor with dynamic loading to prevent SSR issues
 const MDEditor = dynamic(() => import('@uiw/react-md-editor').then(mod => mod.default), { ssr: false });
@@ -30,6 +31,7 @@ interface BlogPost {
   updated_at: string;
   publish_date?: string;
   tags: number[];
+  comments_enabled?: boolean;
 }
 
 export default function EditBlogPostPage({ params }: { params: { id: string } }) {
@@ -47,6 +49,7 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
   const [isScheduling, setIsScheduling] = useState(false);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
   
   // UI state
   const [isLoading, setIsLoading] = useState(true);
@@ -81,6 +84,7 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
         setSelectedCategory(postData.category_id || null);
         setSelectedTags(postData.tags || []);
         setStatus(postData.status);
+        setCommentsEnabled(postData.comments_enabled ?? true);
         
         // Handle publish date if it exists
         if (postData.publish_date) {
@@ -200,6 +204,7 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
         status: finalStatus,
         publish_date: publishDateISOString,
         tags: selectedTags,
+        comments_enabled: commentsEnabled,
       };
       
       const response = await fetch(`/api/admin/blog/posts/${postId}`, {
@@ -343,7 +348,12 @@ export default function EditBlogPostPage({ params }: { params: { id: string } })
                 placeholder="Post title"
               />
             </div>
-            
+
+            <CommentsToggle
+              enabled={commentsEnabled}
+              onChange={setCommentsEnabled}
+            />
+
             {/* Content */}
             <div>
               <label htmlFor="content" className="block mb-1 font-medium">

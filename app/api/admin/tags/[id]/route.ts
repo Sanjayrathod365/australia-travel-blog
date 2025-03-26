@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { query } from '@/app/lib/db';
+import { query } from '../../../../lib/db';
 import slugify from 'slugify';
 
 // GET /api/admin/tags/[id]
@@ -10,20 +10,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!params?.id) {
+      return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 });
     }
 
-    const id = params.id;
-    if (!id) {
-      return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 });
+    const tagId = parseInt(params.id, 10);
+    if (isNaN(tagId)) {
+      return NextResponse.json({ error: 'Invalid tag ID' }, { status: 400 });
     }
 
     const result = await query(
       'SELECT * FROM tags WHERE id = $1',
-      [id]
+      [tagId]
     );
 
     if (result.rows.length === 0) {
@@ -46,32 +44,52 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const id = params.id;
-    if (!id) {
+    if (!params?.id) {
       return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const { name } = body;
+    const tagId = parseInt(params.id, 10);
+    if (isNaN(tagId)) {
+      return NextResponse.json({ error: 'Invalid tag ID' }, { status: 400 });
+    }
 
-    if (!name) {
-      return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+    const body = await request.json();
+    const { name, slug } = body;
+
+    if (!name || !slug) {
+      return NextResponse.json(
+        { error: 'Name and slug are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if tag exists
+    const existingTag = await query(
+      'SELECT * FROM tags WHERE id = $1',
+      [tagId]
+    );
+
+    if (existingTag.rows.length === 0) {
+      return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
+    }
+
+    // Check if slug is already taken by another tag
+    const slugCheck = await query(
+      'SELECT * FROM tags WHERE slug = $1 AND id != $2',
+      [slug, tagId]
+    );
+
+    if (slugCheck.rows.length > 0) {
+      return NextResponse.json(
+        { error: 'Slug is already taken' },
+        { status: 400 }
+      );
     }
 
     const result = await query(
-      'UPDATE tags SET name = $1 WHERE id = $2 RETURNING *',
-      [name, id]
+      'UPDATE tags SET name = $1, slug = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [name, slug, tagId]
     );
-
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
-    }
 
     return NextResponse.json(result.rows[0]);
   } catch (error) {
@@ -89,25 +107,30 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const id = params.id;
-    if (!id) {
+    if (!params?.id) {
       return NextResponse.json({ error: 'Tag ID is required' }, { status: 400 });
     }
 
-    const result = await query(
-      'DELETE FROM tags WHERE id = $1 RETURNING *',
-      [id]
+    const tagId = parseInt(params.id, 10);
+    if (isNaN(tagId)) {
+      return NextResponse.json({ error: 'Invalid tag ID' }, { status: 400 });
+    }
+
+    // Check if tag exists
+    const existingTag = await query(
+      'SELECT * FROM tags WHERE id = $1',
+      [tagId]
     );
 
-    if (result.rows.length === 0) {
+    if (existingTag.rows.length === 0) {
       return NextResponse.json({ error: 'Tag not found' }, { status: 404 });
     }
+
+    // Delete tag associations first
+    await query('DELETE FROM post_tags WHERE tag_id = $1', [tagId]);
+
+    // Then delete the tag
+    await query('DELETE FROM tags WHERE id = $1', [tagId]);
 
     return NextResponse.json({ message: 'Tag deleted successfully' });
   } catch (error) {

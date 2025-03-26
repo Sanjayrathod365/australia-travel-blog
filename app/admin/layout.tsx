@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { Providers } from '@/app/providers';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  FileText, 
+  Tag, 
+  FolderOpen, 
+  Settings,
+  Users
+} from 'lucide-react';
 
 export default function AdminLayout({
   children,
@@ -13,95 +17,85 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/admin/login');
-    }
-  }, [status, router]);
+  const isActive = (path: string) => {
+    return pathname?.startsWith(path);
+  };
 
-  if (status === 'loading') {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return null;
-  }
+  const navItems = [
+    {
+      title: 'Dashboard',
+      href: '/admin',
+      icon: LayoutDashboard,
+    },
+    {
+      title: 'Posts',
+      href: '/admin/posts',
+      icon: FileText,
+    },
+    {
+      title: 'Categories',
+      href: '/admin/categories',
+      icon: FolderOpen,
+    },
+    {
+      title: 'Tags',
+      href: '/admin/tags',
+      icon: Tag,
+    },
+    {
+      title: 'Users',
+      href: '/admin/users',
+      icon: Users,
+    },
+    {
+      title: 'Settings',
+      href: '/admin/settings',
+      icon: Settings,
+    },
+  ];
 
   return (
-    <Providers>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
-        <header className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex">
-                <div className="flex-shrink-0 flex items-center">
-                  <Link href="/admin" className="text-xl font-bold text-gray-900 dark:text-white">
-                    Admin Dashboard
-                  </Link>
-                </div>
-                <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                  <Link
-                    href="/admin"
-                    className={`${
-                      pathname === '/admin'
-                        ? 'border-blue-500 text-gray-900 dark:text-white'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    href="/admin/posts"
-                    className={`${
-                      pathname.startsWith('/admin/posts')
-                        ? 'border-blue-500 text-gray-900 dark:text-white'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                  >
-                    Posts
-                  </Link>
-                  <Link
-                    href="/admin/categories"
-                    className={`${
-                      pathname.startsWith('/admin/categories')
-                        ? 'border-blue-500 text-gray-900 dark:text-white'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                  >
-                    Categories
-                  </Link>
-                  <Link
-                    href="/admin/tags"
-                    className={`${
-                      pathname.startsWith('/admin/tags')
-                        ? 'border-blue-500 text-gray-900 dark:text-white'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 hover:text-gray-700 dark:hover:text-gray-300'
-                    } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                  >
-                    Tags
-                  </Link>
-                </nav>
-              </div>
-              <div className="flex items-center">
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        </header>
+    <div className="min-h-screen flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-card border-r">
+        <div className="h-16 flex items-center px-4 border-b">
+          <Link href="/admin" className="text-lg font-semibold">
+            Admin Dashboard
+          </Link>
+        </div>
+        <nav className="p-4 space-y-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex items-center space-x-3 px-3 py-2 rounded-md transition-colors ${
+                  isActive(item.href)
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.title}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
 
-        <main className="py-10">
-          <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            {children}
-          </div>
+      {/* Main content */}
+      <div className="flex-1 flex flex-col">
+        <header className="h-16 border-b bg-card flex items-center justify-between px-6">
+          <h1 className="text-lg font-semibold">
+            {navItems.find((item) => isActive(item.href))?.title || 'Admin'}
+          </h1>
+        </header>
+        <main className="flex-1 p-6 bg-background">
+          {children}
         </main>
       </div>
-    </Providers>
+    </div>
   );
 }

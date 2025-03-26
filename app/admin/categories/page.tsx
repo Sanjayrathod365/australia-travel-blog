@@ -32,11 +32,11 @@ export default async function CategoriesPage() {
   const result = await query(`
     SELECT 
       c.*,
-      COUNT(pc.post_id) as post_count,
+      COUNT(p.id) as post_count,
       'category' as type
     FROM categories c
-    LEFT JOIN post_categories pc ON c.id = pc.category_id
-    GROUP BY c.id
+    LEFT JOIN posts p ON c.id = p.category_id
+    GROUP BY c.id, c.name, c.slug, c.description, c.created_at, c.updated_at
     ORDER BY c.name ASC
   `);
 
@@ -48,12 +48,12 @@ export default async function CategoriesPage() {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Manage Categories</h1>
+        <h1 className="text-2xl font-bold">Categories</h1>
         <a
           href="/admin/categories/new"
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
-          Add New Category
+          Add Category
         </a>
       </div>
       <DataTable columns={columns} data={categories} />

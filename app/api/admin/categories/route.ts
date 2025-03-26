@@ -11,18 +11,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const result = await query(
-      `
+    const result = await query(`
       SELECT 
         c.*,
-        COUNT(pc.post_id) as post_count,
-        'category' as type
+        COUNT(p.id) as post_count
       FROM categories c
-      LEFT JOIN post_categories pc ON c.id = pc.category_id
-      GROUP BY c.id
+      LEFT JOIN posts p ON c.id = p.category_id
+      GROUP BY c.id, c.name, c.slug, c.description, c.created_at, c.updated_at
       ORDER BY c.name ASC
-      `
-    );
+    `);
 
     return NextResponse.json(result.rows);
   } catch (error) {
@@ -43,21 +40,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description } = body;
+    const { name, slug, description } = body;
 
     if (!name) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
     // Generate a slug from the name
-    const slug = name
+    const slugFromName = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
     const result = await query(
-      'INSERT INTO categories (name, slug, description) VALUES ($1, $2, $3) RETURNING *',
-      [name, slug, description]
+      `INSERT INTO categories (name, slug, description)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [name, slugFromName, description]
     );
 
     return NextResponse.json(result.rows[0]);

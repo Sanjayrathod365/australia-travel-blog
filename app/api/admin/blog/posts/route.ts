@@ -74,16 +74,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { title, content, excerpt, tags } = body;
+    const { title, content, excerpt, tags, comments_enabled } = body;
 
     // Generate slug from title if not provided
     const slug = body.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
     const result = await query(
-      `INSERT INTO posts (title, slug, content, excerpt)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO posts (title, slug, content, excerpt, comments_enabled)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [title, slug, content, excerpt]
+      [title, slug, content, excerpt, comments_enabled ?? true]
     );
 
     const post = result.rows[0];

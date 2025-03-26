@@ -1,0 +1,25 @@
+.admin-layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+.admin-main {
+  flex: 1;
+  padding: 2rem;
+  background-color: #f9fafb;
+}
+
+.admin-footer {
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+} 

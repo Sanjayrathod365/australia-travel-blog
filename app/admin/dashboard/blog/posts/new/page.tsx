@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Save, X, Image, Calendar, Clock, AlertCircle } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { CommentsToggle } from '@/components/CommentsToggle';
 
 // Import the markdown editor with dynamic loading to prevent SSR issues
 const MDEditor = dynamic(() => import('@uiw/react-md-editor').then(mod => mod.default), { ssr: false });
@@ -32,6 +33,7 @@ export default function NewBlogPostPage() {
   const [publishDate, setPublishDate] = useState('');
   const [publishTime, setPublishTime] = useState('');
   const [isScheduling, setIsScheduling] = useState(false);
+  const [commentsEnabled, setCommentsEnabled] = useState(true);
   
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +169,8 @@ export default function NewBlogPostPage() {
           category_id: selectedCategory,
           tags: selectedTags,
           status,
-          publish_date
+          publish_date,
+          comments_enabled: commentsEnabled
         }),
       });
       
@@ -225,22 +228,37 @@ export default function NewBlogPostPage() {
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-lg p-6 shadow-sm">
-        <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-            Title *
-          </label>
-          <input
-            id="title"
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 space-y-6">
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            {/* Comments Toggle Button */}
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setCommentsEnabled(!commentsEnabled)}
+                className={`px-4 py-2 rounded-md text-sm font-medium flex items-center ${
+                  commentsEnabled
+                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+              >
+                {commentsEnabled ? "Comments Enabled" : "Comments Disabled"}
+              </button>
+            </div>
+            
             <div>
               <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
                 Content *
