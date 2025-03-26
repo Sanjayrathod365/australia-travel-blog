@@ -1,87 +1,119 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { cookies } from 'next/headers';
+import { query } from '@/app/lib/db';
 import { 
   listBlogPosts, 
   createBlogPost, 
   BlogPostFilters 
 } from '@/app/lib/blogDb';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-export async function GET(request: NextRequest) {
+async function auth() {
   try {
-    const session = await auth();
+    // Get admin token from cookies
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get('admin_session')?.value;
     
-    // Check if user is authenticated and is an admin
-    if (!session?.user || !session.user.isAdmin) {
+    if (!sessionId) {
+      return null;
+    }
+
+    // Verify session in database
+    const result = await query(
+      'SELECT * FROM admin_sessions WHERE id = $1 AND expires_at > NOW()',
+      [sessionId]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error('Auth error:', error);
+    return null;
+  }
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const categoryId = searchParams.get('categoryId') ? parseInt(searchParams.get('categoryId')!) : undefined;
-    const tagId = searchParams.get('tagId') ? parseInt(searchParams.get('tagId')!) : undefined;
-    const published = searchParams.get('published') 
-      ? searchParams.get('published') === 'true'
-      : undefined;
-    const status = searchParams.get('status') || undefined;
-    
-    const filters: BlogPostFilters = {
-      search,
-      categoryId,
-      tagId,
-      published,
-      status: status as 'draft' | 'published' | undefined
-    };
-    
-    // Get sorted field and direction
-    const sortBy = searchParams.get('sortBy') || 'created_at';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
-    
-    const { posts, total } = await listBlogPosts({
-      page,
-      limit,
-      filters,
-      sortBy,
-      sortOrder
-    });
-    
-    return NextResponse.json({ posts, total });
+
+    const result = await query(
+      `SELECT 
+        p.*,
+        array_agg(t.name) as tags
+      FROM posts p
+      LEFT JOIN post_tags pt ON p.id = pt.post_id
+      LEFT JOIN tags t ON pt.tag_id = t.id
+      GROUP BY p.id
+      ORDER BY p.updated_at DESC`
+    );
+
+    return NextResponse.json(result.rows);
   } catch (error) {
-    console.error('Error handling blog posts request:', error);
+    console.error('Error fetching posts:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch blog posts', message: (error as Error).message },
+      { error: 'Failed to fetch posts' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const session = await auth();
-    
-    // Check if user is authenticated and is an admin
-    if (!session?.user || !session.user.isAdmin) {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Get post data from request body
-    const postData = await request.json();
-    
-    // Set author id from session
-    postData.author_id = session.user.id;
-    
-    const newPost = await createBlogPost(postData);
-    
-    return NextResponse.json(
-      { message: 'Blog post created successfully', post: newPost },
-      { status: 201 }
+
+    const body = await request.json();
+    const { title, content, excerpt, tags } = body;
+
+    // Generate slug from title if not provided
+    const slug = body.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+
+    const result = await query(
+      `INSERT INTO posts (title, slug, content, excerpt)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [title, slug, content, excerpt]
     );
+
+    const post = result.rows[0];
+
+    // Handle tags if provided
+    if (tags && tags.length > 0) {
+      for (const tagName of tags) {
+        // Insert or get tag
+        const tagResult = await query(
+          `INSERT INTO tags (name) VALUES ($1)
+           ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+           RETURNING id`,
+          [tagName]
+        );
+        const tagId = tagResult.rows[0].id;
+
+        // Create post-tag relationship
+        await query(
+          `INSERT INTO post_tags (post_id, tag_id) VALUES ($1, $2)
+           ON CONFLICT DO NOTHING`,
+          [post.id, tagId]
+        );
+      }
+    }
+
+    return NextResponse.json(post);
   } catch (error) {
-    console.error('Error creating blog post:', error);
+    console.error('Error creating post:', error);
     return NextResponse.json(
-      { error: 'Failed to create blog post', message: (error as Error).message },
+      { error: 'Failed to create post' },
       { status: 500 }
     );
   }

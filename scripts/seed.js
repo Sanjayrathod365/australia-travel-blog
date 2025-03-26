@@ -1,12 +1,15 @@
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import dotenv from 'dotenv';
-import { query } from '../app/lib/db.js';
+const path = require('path');
+const dotenv = require('dotenv');
+const { Pool } = require('pg');
 
 // Set up environment variables
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-dotenv.config({ path: new URL('../.env.local', import.meta.url) });
+dotenv.config({ path: path.join(__dirname, '../.env.local') });
+
+// Create a new pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
 // Log the database URL (without password) for debugging
 const dbUrl = process.env.DATABASE_URL;
@@ -18,8 +21,66 @@ if (dbUrl) {
   process.exit(1);
 }
 
+async function query(text, params) {
+  const start = Date.now();
+  try {
+    const res = await pool.query(text, params);
+    const duration = Date.now() - start;
+    console.log('Executed query', { text, duration, rows: res.rowCount });
+    return res;
+  } catch (error) {
+    console.error('Error executing query:', error);
+    throw error;
+  }
+}
+
 async function seedDatabase() {
   try {
+    // Create tables if they don't exist
+    await query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(150) UNIQUE NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(300) UNIQUE NOT NULL,
+        content TEXT,
+        excerpt TEXT,
+        featured_image VARCHAR(255),
+        author VARCHAR(100),
+        published_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS tags (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(150) UNIQUE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS post_categories (
+        post_id INTEGER REFERENCES posts(id),
+        category_id INTEGER REFERENCES categories(id),
+        PRIMARY KEY (post_id, category_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS post_tags (
+        post_id INTEGER REFERENCES posts(id),
+        tag_id INTEGER REFERENCES tags(id),
+        PRIMARY KEY (post_id, tag_id)
+      );
+    `);
+
     // Insert sample categories
     await query(`
       INSERT INTO categories (name, slug, description)
@@ -123,6 +184,8 @@ async function seedDatabase() {
   } catch (error) {
     console.error('Error seeding database:', error);
     throw error;
+  } finally {
+    await pool.end();
   }
 }
 
