@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Providers } from '@/app/providers';
@@ -13,13 +13,14 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session, status } = useSession();
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      window.location.href = '/admin/login';
+      router.push('/admin/login');
     }
-  }, [status]);
+  }, [status, router]);
 
   if (status === 'loading') {
     return (

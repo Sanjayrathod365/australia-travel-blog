@@ -47,4 +47,25 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const result = await query(
+      'SELECT id, name FROM tags ORDER BY name ASC'
+    );
+
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching tags:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch tags' },
+      { status: 500 }
+    );
+  }
 } 

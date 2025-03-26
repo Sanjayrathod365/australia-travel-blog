@@ -1,26 +1,51 @@
 "use client";
 
 import { Row } from "@tanstack/react-table";
-import { MoreHorizontal, Pencil, Trash } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
+import { MoreHorizontal, Pencil, Trash } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import DeleteButton from "./DeleteButton";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
-interface DataTableRowActionsProps<TData extends { type?: string }> {
+interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
 }
 
-export function DataTableRowActions<TData extends { type?: string }>({
+export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
-  const id = row.getValue("id") as number;
-  const type = row.original.type || "tags";
+  const router = useRouter();
+  const data = row.original as any;
+  const type = data.type || 'post';
+
+  const handleDelete = async () => {
+    try {
+      const response = await fetch(`/api/admin/${type}s/${data.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete');
+      }
+
+      toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully`);
+      router.refresh();
+    } catch (error) {
+      console.error('Error deleting:', error);
+      toast.error(`Failed to delete ${type}`);
+    }
+  };
+
+  const getEditPath = () => {
+    // Handle plural forms correctly
+    const path = type === 'category' ? 'categories' : `${type}s`;
+    return `/admin/${path}/${data.id}/edit`;
+  };
 
   return (
     <DropdownMenu>
@@ -34,14 +59,15 @@ export function DataTableRowActions<TData extends { type?: string }>({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild>
-          <a href={`/admin/${type}/edit/${id}`}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Edit
-          </a>
+        <DropdownMenuItem
+          onClick={() => router.push(getEditPath())}
+        >
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <DeleteButton postId={id} />
+        <DropdownMenuItem onClick={handleDelete}>
+          <Trash className="mr-2 h-4 w-4" />
+          Delete
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

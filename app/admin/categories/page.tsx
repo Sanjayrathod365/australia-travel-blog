@@ -11,6 +11,17 @@ export const metadata: Metadata = {
   description: "Manage blog categories",
 };
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  post_count: number;
+  created_at: string;
+  updated_at: string;
+  type: string;
+}
+
 export default async function CategoriesPage() {
   const session = await getServerSession(authOptions);
 
@@ -21,12 +32,18 @@ export default async function CategoriesPage() {
   const result = await query(`
     SELECT 
       c.*,
-      COUNT(pc.post_id) as post_count
+      COUNT(pc.post_id) as post_count,
+      'category' as type
     FROM categories c
     LEFT JOIN post_categories pc ON c.id = pc.category_id
     GROUP BY c.id
     ORDER BY c.name ASC
   `);
+
+  const categories = result.rows.map((category: Category) => ({
+    ...category,
+    type: 'category'
+  }));
 
   return (
     <div className="container mx-auto py-10">
@@ -39,7 +56,7 @@ export default async function CategoriesPage() {
           Add New Category
         </a>
       </div>
-      <DataTable columns={columns} data={result.rows} />
+      <DataTable columns={columns} data={categories} />
     </div>
   );
 } 

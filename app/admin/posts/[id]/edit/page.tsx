@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { useSession } from 'next-auth/react';
+import dynamic from 'next/dynamic';
 import { use } from 'react';
+
+const MDEditor = dynamic(() => import('@uiw/react-md-editor'), { ssr: false });
+
+interface Tag {
+  id: number;
+  name: string;
+}
 
 interface Post {
   id: number;
@@ -14,49 +22,68 @@ interface Post {
   tags: string[];
 }
 
-export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const [post, setPost] = useState<Post | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export default function EditPostPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const [title, setTitle] = useState('');
+  const [content, setContent] = useState('');
+  const [excerpt, setExcerpt] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
+  const resolvedParams = use(params);
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/admin/login');
-      return;
-    }
-
-    if (status === 'authenticated') {
-      fetchPost();
-    }
-  }, [status, router, resolvedParams.id]);
-
-  const fetchPost = async () => {
-    try {
-      const response = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`);
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          router.push('/admin/login');
-          return;
+    const fetchPost = async () => {
+      try {
+        const response = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch post');
         }
-        throw new Error('Failed to fetch post');
+        const post: Post = await response.json();
+        setTitle(post.title);
+        setContent(post.content);
+        setExcerpt(post.excerpt);
+        setSelectedTags(post.tags || []);
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        toast.error('Failed to fetch post');
       }
-      
-      const data = await response.json();
-      setPost(data);
-    } catch (error) {
-      console.error('Error fetching post:', error);
-      toast.error('Failed to load post');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('/api/admin/tags');
+        if (!response.ok) {
+          throw new Error('Failed to fetch tags');
+        }
+        const tags = await response.json();
+        setAvailableTags(tags);
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+        toast.error('Failed to fetch tags');
+      }
+    };
+
+    fetchPost();
+    fetchTags();
+  }, [resolvedParams.id]);
+
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!post) return;
+    setIsLoading(true);
 
     try {
       const response = await fetch(`/api/admin/blog/posts/${resolvedParams.id}`, {
@@ -65,36 +92,35 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title: post.title,
-          content: post.content,
-          excerpt: post.excerpt,
-          tags: post.tags,
+          title,
+          content,
+          excerpt,
+          tags: selectedTags.filter(tag => tag && typeof tag === 'string' && tag.trim() !== ''), // Filter out null, undefined, and empty tags
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update post');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update post');
       }
 
       toast.success('Post updated successfully');
       router.push('/admin/posts');
     } catch (error) {
       console.error('Error updating post:', error);
-      toast.error('Failed to update post');
+      toast.error(error instanceof Error ? error.message : 'Failed to update post');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+  const handleTagToggle = (tagName: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagName)
+        ? prev.filter((t) => t !== tagName)
+        : [...prev, tagName]
     );
-  }
-
-  if (!session || !post) {
-    return null;
-  }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -116,8 +142,8 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           <input
             type="text"
             id="title"
-            value={post.title}
-            onChange={(e) => setPost({ ...post, title: e.target.value })}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             required
           />
@@ -129,47 +155,51 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
           </label>
           <textarea
             id="excerpt"
-            value={post.excerpt}
-            onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
             rows={3}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Tags
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {availableTags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => handleTagToggle(tag.name)}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  selectedTags.includes(tag.name)
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div>
           <label htmlFor="content" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Content
           </label>
-          <textarea
-            id="content"
-            value={post.content}
-            onChange={(e) => setPost({ ...post, content: e.target.value })}
-            rows={10}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Tags (comma-separated)
-          </label>
-          <input
-            type="text"
-            id="tags"
-            value={post.tags.join(', ')}
-            onChange={(e) => setPost({ ...post, tags: e.target.value.split(',').map(tag => tag.trim()) })}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-          />
+          <div data-color-mode="light" className="mt-1">
+            <MDEditor value={content} onChange={(value) => setContent(value || '')} />
+          </div>
         </div>
 
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+            disabled={isLoading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Update Post
+            {isLoading ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>
