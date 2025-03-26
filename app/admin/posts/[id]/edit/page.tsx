@@ -26,6 +26,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 import { use } from "react";
+import MDEditor from "@uiw/react-md-editor";
+import { useTheme } from "next-themes";
 
 interface Category {
   id: number;
@@ -52,10 +54,19 @@ const formSchema = z.object({
 export default function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [commentsEnabled, setCommentsEnabled] = useState(true);
+  const [title, setTitle] = useState("");
+  const [slug, setSlug] = useState("");
+  const [content, setContent] = useState("");
+  const [excerpt, setExcerpt] = useState("");
+  const [status, setStatus] = useState("draft");
+  const [published_at, setPublished_at] = useState("");
+  const [category_id, setCategory_id] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -99,6 +110,22 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
 
         form.reset(formattedData);
         setCommentsEnabled(postData.comments_enabled ?? true);
+        setTitle(postData.title);
+        setSlug(postData.slug);
+        setContent(postData.content);
+        setExcerpt(postData.excerpt || "");
+        setStatus(postData.status || "draft");
+        setPublished_at(postData.published_at ? new Date(postData.published_at).toISOString().split('T')[0] : "");
+        setCategory_id(postData.category_id?.toString() || "");
+        
+        // Safely handle tags
+        if (Array.isArray(postData.tags)) {
+          setTags(postData.tags
+            .filter((tag: any) => tag && tag.id)
+            .map((tag: any) => tag.id.toString()));
+        } else {
+          setTags([]);
+        }
 
         // Fetch categories
         const categoriesResponse = await fetch("/api/admin/categories");
@@ -156,228 +183,216 @@ export default function EditPostPage({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container mx-auto py-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Edit Post</h1>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Title</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter post title" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {/* Comments Toggle Button */}
-          <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <div>
-              <h3 className="font-medium text-gray-900">Comments</h3>
-              <p className="text-sm text-gray-500 mt-1">Allow visitors to leave comments on this post</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCommentsEnabled(!commentsEnabled)}
-              className={`inline-flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                commentsEnabled
-                  ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }`}
-            >
-              {commentsEnabled ? (
-                <>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Comments Enabled
-                </>
-              ) : (
-                <>
-                  <MessageSquareOff className="h-4 w-4 mr-2" />
-                  Comments Disabled
-                </>
-              )}
-            </button>
-          </div>
-
-          <FormField
-            control={form.control}
-            name="slug"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Slug</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter post slug" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="content"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Content</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter post content"
-                    className="min-h-[200px]"
-                    {...field}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 bg-card dark:bg-gray-800 rounded-lg p-6 shadow-sm">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-6">
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-foreground mb-1">
+                  Title *
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-background dark:bg-gray-700 border border-input dark:border-gray-600 rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  required
+                />
+              </div>
+              
+              {/* Comments Toggle Button */}
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setCommentsEnabled(!commentsEnabled)}
+                  className={`px-4 py-2 rounded-md text-sm font-medium flex items-center transition-colors ${
+                    commentsEnabled
+                      ? "bg-primary/20 text-primary hover:bg-primary/30 dark:bg-primary/30 dark:hover:bg-primary/40"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  {commentsEnabled ? "Comments Enabled" : "Comments Disabled"}
+                </button>
+              </div>
+              
+              <div>
+                <label htmlFor="content" className="block text-sm font-medium text-foreground mb-1">
+                  Content *
+                </label>
+                <div data-color-mode={theme === 'dark' ? 'dark' : 'light'} className="w-full mb-4">
+                  <MDEditor
+                    value={content}
+                    onChange={(val: string | undefined) => setContent(val || '')}
+                    height={400}
+                    preview="edit"
                   />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="excerpt"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Excerpt</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Enter post excerpt"
-                    className="min-h-[100px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select post status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="draft">Draft</SelectItem>
-                    <SelectItem value="published">Published</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          {form.watch("status") === "published" && (
-            <FormField
-              control={form.control}
-              name="published_at"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Publication Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          <FormField
-            control={form.control}
-            name="category_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="tags"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tags</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    const currentTags = field.value || [];
-                    if (!currentTags.includes(value)) {
-                      field.onChange([...currentTags, value]);
-                    }
-                  }}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select tags" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {availableTags.map((tag) => (
-                      <SelectItem key={tag.id} value={tag.id.toString()}>
-                        {tag.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {field.value?.map((tagId) => {
-                    const tag = availableTags.find((t) => t.id.toString() === tagId);
-                    return tag ? (
-                      <div
-                        key={tag.id}
-                        className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm flex items-center gap-1"
-                      >
-                        {tag.name}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            field.onChange(field.value?.filter((id) => id !== tagId));
-                          }}
-                          className="text-blue-800 hover:text-blue-900"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ) : null;
-                  })}
                 </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              </div>
+            </div>
+            
+            <div className="md:col-span-1 space-y-6">
+              <FormField
+                control={form.control}
+                name="slug"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Slug</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter post slug" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="excerpt"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Excerpt</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Enter post excerpt"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select post status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="published">Published</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {form.watch("status") === "published" && (
+                <FormField
+                  control={form.control}
+                  name="published_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Publication Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="category_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem key={category.id} value={category.id.toString()}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tags"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tags</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        const currentTags = field.value || [];
+                        if (!currentTags.includes(value)) {
+                          field.onChange([...currentTags, value]);
+                        }
+                      }}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select tags" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableTags.map((tag) => (
+                          <SelectItem key={tag.id} value={tag.id.toString()}>
+                            {tag.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {field.value?.map((tagId) => {
+                        const tag = availableTags.find((t) => t.id.toString() === tagId);
+                        return tag ? (
+                          <div
+                            key={tag.id}
+                            className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-sm flex items-center gap-1"
+                          >
+                            {tag.name}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                field.onChange(field.value?.filter((id) => id !== tagId));
+                              }}
+                              className="text-blue-800 hover:text-blue-900"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
 
           <Button type="submit" disabled={loading}>
             {loading ? "Saving..." : "Save Changes"}

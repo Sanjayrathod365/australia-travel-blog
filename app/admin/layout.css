@@ -1,17 +1,17 @@
 .admin-layout {
-  @apply min-h-screen bg-background;
+  @apply min-h-screen bg-background text-foreground;
 }
 
 .admin-sidebar {
-  @apply fixed inset-y-0 left-0 w-64 bg-card border-r;
+  @apply fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700;
 }
 
 .admin-sidebar-header {
-  @apply flex items-center h-16 px-4 border-b;
+  @apply flex items-center h-16 px-4 border-b border-gray-200 dark:border-gray-700;
 }
 
 .admin-sidebar-title {
-  @apply text-lg font-semibold;
+  @apply text-lg font-semibold text-gray-900 dark:text-gray-100;
 }
 
 .admin-sidebar-nav {
@@ -19,11 +19,11 @@
 }
 
 .admin-sidebar-link {
-  @apply flex items-center px-3 py-2 text-sm font-medium rounded-md text-muted-foreground hover:text-foreground hover:bg-accent;
+  @apply flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700;
 }
 
 .admin-sidebar-link.active {
-  @apply text-foreground bg-accent;
+  @apply text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-gray-700;
 }
 
 .admin-main {
@@ -31,11 +31,11 @@
 }
 
 .admin-header {
-  @apply flex items-center justify-between h-16 px-4 border-b bg-card;
+  @apply flex items-center justify-between h-16 px-4 border-b bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700;
 }
 
 .admin-title {
-  @apply text-lg font-semibold;
+  @apply text-lg font-semibold text-gray-900 dark:text-gray-100;
 }
 
 .admin-actions {
@@ -43,19 +43,19 @@
 }
 
 .admin-content {
-  @apply p-6;
+  @apply p-6 bg-gray-50 dark:bg-gray-900;
 }
 
 .admin-table {
-  @apply w-full border-collapse;
+  @apply w-full border-collapse bg-white dark:bg-gray-800 rounded-lg overflow-hidden;
 }
 
 .admin-table th {
-  @apply px-4 py-2 text-left text-sm font-medium text-muted-foreground bg-muted;
+  @apply px-4 py-2 text-left text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600;
 }
 
 .admin-table td {
-  @apply px-4 py-2 text-sm border-b;
+  @apply px-4 py-2 text-sm text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700;
 }
 
 .admin-form {
@@ -67,15 +67,15 @@
 }
 
 .admin-form-label {
-  @apply block text-sm font-medium;
+  @apply block text-sm font-medium text-gray-900 dark:text-gray-100;
 }
 
 .admin-form-input {
-  @apply block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400;
 }
 
 .admin-form-textarea {
-  @apply block w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-400 dark:focus:border-blue-400;
 }
 
 .admin-alert {
@@ -83,39 +83,39 @@
 }
 
 .admin-alert-success {
-  @apply bg-green-50 text-green-800 border border-green-200;
+  @apply bg-green-50 text-green-800 border border-green-200 dark:bg-green-900/50 dark:text-green-100 dark:border-green-800;
 }
 
 .admin-alert-error {
-  @apply bg-red-50 text-red-800 border border-red-200;
+  @apply bg-red-50 text-red-800 border border-red-200 dark:bg-red-900/50 dark:text-red-100 dark:border-red-800;
 }
 
 .admin-alert-warning {
-  @apply bg-yellow-50 text-yellow-800 border border-yellow-200;
+  @apply bg-yellow-50 text-yellow-800 border border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-100 dark:border-yellow-800;
 }
 
 .admin-alert-info {
-  @apply bg-blue-50 text-blue-800 border border-blue-200;
+  @apply bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/50 dark:text-blue-100 dark:border-blue-800;
 }
 
 .admin-breadcrumb {
-  @apply flex items-center space-x-2 text-sm text-muted-foreground mb-4;
+  @apply flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400 mb-4;
 }
 
 .admin-breadcrumb-item {
-  @apply hover:text-foreground;
+  @apply hover:text-gray-900 dark:hover:text-gray-100;
 }
 
 .admin-breadcrumb-separator {
-  @apply text-muted-foreground;
+  @apply text-gray-400 dark:text-gray-600;
 }
 
 .admin-pagination {
-  @apply flex items-center justify-between px-4 py-3 bg-card border-t;
+  @apply flex items-center justify-between px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700;
 }
 
 .admin-pagination-info {
-  @apply text-sm text-muted-foreground;
+  @apply text-sm text-gray-700 dark:text-gray-300;
 }
 
 .admin-pagination-buttons {
@@ -123,11 +123,11 @@
 }
 
 .admin-pagination-button {
-  @apply px-3 py-1 text-sm rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+  @apply px-3 py-1 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600;
 }
 
 .admin-pagination-button.active {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply bg-blue-600 text-white dark:bg-blue-500 border-blue-600 dark:border-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600;
 }
 
 .admin-pagination-button:disabled {

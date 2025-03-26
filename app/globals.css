@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* Australian-inspired color palette */
+    /* Light mode colors with better contrast */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
@@ -14,19 +14,19 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    /* Ocean blue */
+    /* Ocean blue with better contrast */
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
-    /* Sandy beige */
+    /* Sandy beige with better contrast */
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    /* Light sand */
+    /* Light sand with better contrast */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    /* Eucalyptus green accent */
+    /* Eucalyptus green accent with better contrast */
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
@@ -41,7 +41,7 @@
   }
 
   .dark {
-    /* Dark mode with Australian outback night colors */
+    /* Dark mode colors with better contrast */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -51,27 +51,27 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    /* Deep ocean blue */
+    /* Deep ocean blue with better contrast */
     --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
 
-    /* Dark sand */
+    /* Dark sand with better contrast */
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    /* Dark earth */
+    /* Dark earth with better contrast */
     --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 20.2% 75%;
 
-    /* Dark eucalyptus */
+    /* Dark eucalyptus with better contrast */
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 25%;
     --ring: 224.3 76.3% 48%;
   }
 }
@@ -83,6 +83,63 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Light mode text styles */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-gray-900 font-bold;
+  }
+  
+  p, span, li {
+    @apply text-gray-800;
+  }
+  
+  .text-muted-foreground {
+    @apply text-gray-600;
+  }
+  
+  /* Light mode input styles */
+  input,
+  textarea,
+  select {
+    @apply bg-white border-gray-200 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+  
+  /* Light mode button styles */
+  button {
+    @apply text-gray-900 hover:text-gray-700;
+  }
+  
+  /* Dark mode text styles */
+  .dark h1,
+  .dark h2,
+  .dark h3,
+  .dark h4,
+  .dark h5,
+  .dark h6 {
+    @apply text-gray-100 font-bold;
+  }
+  
+  .dark p,
+  .dark span,
+  .dark li {
+    @apply text-gray-200;
+  }
+  
+  .dark .text-muted-foreground {
+    @apply text-gray-300;
+  }
+  
+  /* Dark mode input styles */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    @apply bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-400 focus:border-blue-400;
+  }
+  
+  /* Dark mode button styles */
+  .dark button {
+    @apply text-gray-100 hover:text-gray-300;
   }
 }
 
@@ -133,39 +190,39 @@ body {
   @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
 }
 
-/* Responsive typography */
+/* Responsive typography with better contrast */
 h1 {
-  @apply text-4xl md:text-5xl font-bold;
+  @apply text-4xl md:text-5xl font-bold text-gray-900 dark:text-gray-100 tracking-tight;
 }
 
 h2 {
-  @apply text-3xl md:text-4xl font-bold;
+  @apply text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 tracking-tight;
 }
 
 h3 {
-  @apply text-2xl md:text-3xl font-bold;
+  @apply text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight;
 }
 
 /* Card hover effects */
 .article-card {
-  @apply transition-transform duration-200 hover:transform hover:scale-105;
+  @apply transition-transform duration-200 hover:transform hover:scale-105 bg-white dark:bg-gray-800 shadow-lg dark:shadow-gray-900/30;
 }
 
-/* Button styles */
+/* Button styles with better contrast */
 .btn {
   @apply inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
 }
 
 .btn-primary {
-  @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm dark:shadow-primary/20;
 }
 
 .btn-secondary {
-  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm dark:shadow-secondary/20;
 }
 
 .btn-outline {
-  @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+  @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm dark:shadow-gray-900/20;
 }
 
 .btn-ghost {
@@ -176,12 +233,14 @@ h3 {
   @apply text-primary underline-offset-4 hover:underline;
 }
 
+/* Form input styles with better contrast */
 .input {
-  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/20;
 }
 
+/* Card styles with better contrast */
 .card {
-  @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+  @apply rounded-lg border bg-card text-card-foreground shadow-sm dark:shadow-gray-900/30;
 }
 
 .card-header {
@@ -189,15 +248,15 @@ h3 {
 }
 
 .card-title {
-  @apply text-2xl font-semibold leading-none tracking-tight;
+  @apply text-2xl font-semibold leading-none tracking-tight text-gray-900 dark:text-gray-100;
 }
 
 .card-description {
-  @apply text-sm text-muted-foreground;
+  @apply text-sm text-gray-600 dark:text-gray-300;
 }
 
 .card-content {
-  @apply p-6 pt-0;
+  @apply p-6 pt-0 text-gray-700 dark:text-gray-200;
 }
 
 .card-footer {
@@ -214,15 +273,15 @@ h3 {
   }
 
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm dark:shadow-primary/20;
   }
 
   .btn-secondary {
-    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80;
+    @apply bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-sm dark:shadow-secondary/20;
   }
 
   .btn-outline {
-    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground;
+    @apply border border-input bg-background hover:bg-accent hover:text-accent-foreground shadow-sm dark:shadow-gray-900/20;
   }
 
   .btn-ghost {
@@ -234,11 +293,11 @@ h3 {
   }
 
   .card {
-    @apply rounded-lg border bg-card text-card-foreground shadow-sm;
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm dark:shadow-gray-900/30;
   }
 
   .input {
-    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-gray-900 dark:text-gray-100 shadow-sm dark:shadow-gray-900/20;
   }
 
   .link {
