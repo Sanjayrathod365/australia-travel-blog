@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Download Gallery Images</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .image-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .image-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        .download-link {
+            display: block;
+            margin-top: 10px;
+            text-align: center;
+            padding: 8px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .download-link:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Download Gallery Images</h1>
+    <p>Click on each image to download it. Save each image with its corresponding filename.</p>
+    
+    <div class="image-grid">
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=1" alt="Sydney Opera House">
+            <a href="https://picsum.photos/800/600?random=1" class="download-link" download="sydney-opera-house.jpg">Download Sydney Opera House</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=2" alt="Great Barrier Reef">
+            <a href="https://picsum.photos/800/600?random=2" class="download-link" download="great-barrier-reef.jpg">Download Great Barrier Reef</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=3" alt="Uluru">
+            <a href="https://picsum.photos/800/600?random=3" class="download-link" download="uluru.jpg">Download Uluru</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=4" alt="Kangaroo">
+            <a href="https://picsum.photos/800/600?random=4" class="download-link" download="kangaroo.jpg">Download Kangaroo</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=5" alt="Koala">
+            <a href="https://picsum.photos/800/600?random=5" class="download-link" download="koala.jpg">Download Koala</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=6" alt="Bondi Beach">
+            <a href="https://picsum.photos/800/600?random=6" class="download-link" download="bondi-beach.jpg">Download Bondi Beach</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=7" alt="Blue Mountains">
+            <a href="https://picsum.photos/800/600?random=7" class="download-link" download="blue-mountains.jpg">Download Blue Mountains</a>
+        </div>
+        
+        <div class="image-item">
+            <img src="https://picsum.photos/800/600?random=8" alt="Whitsunday Islands">
+            <a href="https://picsum.photos/800/600?random=8" class="download-link" download="whitsunday-islands.jpg">Download Whitsunday Islands</a>
+        </div>
+    </div>
+</body>
+</html> 
